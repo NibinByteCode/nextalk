@@ -1,0 +1,11 @@
+@NexTalk.Api_HostAddress = http://localhost:5129
+
+GET {{NexTalk.Api_HostAddress}}/openapi/v1.json
+Accept: application/json
+
+###
+
+GET {{NexTalk.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
