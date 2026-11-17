@@ -68,6 +68,29 @@ contains the host IP, configure it with
 certificate on each client device. Do not use the HTTP profile for
 authenticated traffic.
 
+### HTTP LAN fallback for mobile testing
+
+If installing a LAN certificate on the phone is not practical, use this only
+on a trusted private Wi-Fi network. This mode does not encrypt credentials or
+messages:
+
+```powershell
+$lanIp = "10.0.0.212"
+$env:AllowedOrigins__1 = "http://$lanIp`:4200"
+$env:Jwt__Secret = "replace-with-a-long-random-secret-at-least-32-bytes"
+dotnet run --project backend\NexTalk.Api --launch-profile http
+```
+
+Then start Angular and open `http://10.0.0.212:4200` on the phone:
+
+```powershell
+cd frontend\nextalk-web
+npm start -- --host 0.0.0.0
+```
+
+The frontend automatically uses the HTTP API when loaded over HTTP. Do not
+use this mode outside a trusted development network.
+
 Set `Database__Provider` to `SqlServer` or `Firebase`. SQL Server uses
 `ConnectionStrings__SqlServer`; Firebase uses `Firebase__ProjectId` and
 secure server-side credentials.

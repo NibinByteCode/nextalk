@@ -49,7 +49,8 @@ builder.Services.AddSignalR();
 var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
-app.UseHttpsRedirection();
+if (builder.Configuration.GetValue("Security:UseHttpsRedirection", true))
+    app.UseHttpsRedirection();
 app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();

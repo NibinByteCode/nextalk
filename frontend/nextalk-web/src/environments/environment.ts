@@ -1,6 +1,9 @@
 const apiHost = typeof window === 'undefined' ? 'localhost' : window.location.hostname;
+const useHttps = typeof window === 'undefined' || window.location.protocol === 'https:';
+const apiProtocol = useHttps ? 'https' : 'http';
+const apiPort = useHttps ? 7000 : 5129;
 
 export const environment = {
-  apiUrl: `https://${apiHost}:7000/api`,
-  hubUrl: `https://${apiHost}:7000/hubs/chat`
+  apiUrl: `${apiProtocol}://${apiHost}:${apiPort}/api`,
+  hubUrl: `${apiProtocol}://${apiHost}:${apiPort}/hubs/chat`
 };
