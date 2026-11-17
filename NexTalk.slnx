@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/NexTalk.Domain/NexTalk.Domain.csproj" />
+    <Project Path="backend/NexTalk.Application/NexTalk.Application.csproj" />
+    <Project Path="backend/NexTalk.Infrastructure/NexTalk.Infrastructure.csproj" />
+    <Project Path="backend/NexTalk.Api/NexTalk.Api.csproj" />
+  </Folder>
+</Solution>
