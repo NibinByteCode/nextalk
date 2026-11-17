@@ -18,7 +18,8 @@ Set a JWT secret of at least 32 bytes before starting the API:
 
 ```powershell
 $env:Jwt__Secret = "replace-with-a-long-random-secret-at-least-32-bytes"
-dotnet run --project backend\NexTalk.Api
+dotnet dev-certs https --trust
+dotnet run --project backend\NexTalk.Api --launch-profile https
 ```
 
 In another terminal:
@@ -29,6 +30,11 @@ npm start
 ```
 
 The default frontend URL is `http://localhost:4200`.
+
+The Angular development configuration uses `https://localhost:7000` for API
+and SignalR traffic. Credentials are protected in transit by HTTPS; the API
+also hashes passwords with ASP.NET Core's password hasher and never stores
+plain-text passwords. Do not use the HTTP profile for authenticated traffic.
 
 Set `Database__Provider` to `SqlServer` or `Firebase`. SQL Server uses
 `ConnectionStrings__SqlServer`; Firebase uses `Firebase__ProjectId` and
