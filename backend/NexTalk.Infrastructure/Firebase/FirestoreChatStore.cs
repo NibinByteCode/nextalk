@@ -38,6 +38,14 @@ public sealed class FirestoreChatStore(FirestoreDb db) : IChatStore
         var snapshot = await Conversations.Document(id).GetSnapshotAsync(ct);
         return snapshot.Exists ? snapshot.ConvertTo<ChatConversation>() : null;
     }
+    public async Task<ChatConversation?> FindPrivateConversationAsync(string firstUserId, string secondUserId, CancellationToken ct = default)
+    {
+        var result = await Conversations.WhereArrayContains("MemberIds", firstUserId).GetSnapshotAsync(ct);
+        return result.Documents
+            .Select(x => x.ConvertTo<ChatConversation>())
+            .FirstOrDefault(x => x.Kind == ConversationKind.Private &&
+                x.MemberIds.Count == 2 && x.MemberIds.Contains(secondUserId));
+    }
     public async Task<IReadOnlyList<ChatConversation>> GetUserConversationsAsync(string userId, CancellationToken ct = default)
     {
         var result = await Conversations.WhereArrayContains("MemberIds", userId).GetSnapshotAsync(ct);

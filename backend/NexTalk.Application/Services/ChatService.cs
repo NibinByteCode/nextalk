@@ -17,9 +17,14 @@ public sealed class ChatService(IChatStore store)
 
         var name = request.Kind == ConversationKind.Private ? "Private conversation" : request.Name.Trim();
         if (request.Kind == ConversationKind.Group && name.Length is < 2 or > 120) throw new ArgumentException("Group name must be between 2 and 120 characters.");
+        if (request.Kind == ConversationKind.Private)
+        {
+            var existing = await store.FindPrivateConversationAsync(creatorId, members.Single(x => x != creatorId), ct);
+            if (existing is not null) return await ToDtoAsync(existing, creatorId, ct);
+        }
         var conversation = new ChatConversation { Kind = request.Kind, Name = name, CreatedByUserId = creatorId, MemberIds = members };
         await store.CreateConversationAsync(conversation, ct);
-        return ToDto(conversation);
+        return await ToDtoAsync(conversation, creatorId, ct);
     }
 
     public async Task<ConversationDto> CreatePublicRoomAsync(string creatorId, string name, CancellationToken ct = default)
@@ -32,7 +37,7 @@ public sealed class ChatService(IChatStore store)
     }
 
     public async Task<IReadOnlyList<ConversationDto>> GetMyConversationsAsync(string userId, CancellationToken ct = default) =>
-        (await store.GetUserConversationsAsync(userId, ct)).Select(ToDto).ToList();
+        await ToConversationListAsync(userId, ct);
 
     public async Task<IReadOnlyList<ConversationDto>> GetPublicRoomsAsync(CancellationToken ct = default) =>
         (await store.GetPublicRoomsAsync(ct)).Select(ToDto).ToList();
@@ -82,4 +87,32 @@ public sealed class ChatService(IChatStore store)
 
     private static ConversationDto ToDto(ChatConversation x) => new(x.Id, x.Name, x.Kind, x.MemberIds, x.CreatedAt);
     private static MessageDto ToDto(ChatMessage x) => new(x.Id, x.ConversationId, x.SenderId, x.SenderName, x.Content, x.SentAt);
+
+    private async Task<IReadOnlyList<ConversationDto>> ToConversationListAsync(string userId, CancellationToken ct)
+    {
+        var conversations = await store.GetUserConversationsAsync(userId, ct);
+        var unique = conversations
+            .GroupBy(x => x.Kind == ConversationKind.Private
+                ? x.MemberIds.FirstOrDefault(id => id != userId) ?? x.Id
+                : x.Id)
+            .Select(x => x.First())
+            .ToList();
+        var result = new List<ConversationDto>(unique.Count);
+        foreach (var conversation in unique)
+            result.Add(await ToDtoAsync(conversation, userId, ct));
+        return result;
+    }
+
+    private async Task<ConversationDto> ToDtoAsync(ChatConversation conversation, string viewerId, CancellationToken ct)
+    {
+        if (conversation.Kind != ConversationKind.Private) return ToDto(conversation);
+        var otherUserId = conversation.MemberIds.FirstOrDefault(id => id != viewerId);
+        var otherUser = otherUserId is null ? null : await store.FindUserByIdAsync(otherUserId, ct);
+        return new ConversationDto(
+            conversation.Id,
+            otherUser?.UserName ?? "Private conversation",
+            conversation.Kind,
+            conversation.MemberIds,
+            conversation.CreatedAt);
+    }
 }

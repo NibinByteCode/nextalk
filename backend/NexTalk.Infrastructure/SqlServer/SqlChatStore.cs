@@ -20,6 +20,16 @@ public sealed class SqlChatStore(NexTalkDbContext db) : IChatStore
     public async Task CreateConversationAsync(ChatConversation conversation, CancellationToken ct = default) { db.Conversations.Add(conversation); await db.SaveChangesAsync(ct); }
     public Task<ChatConversation?> FindConversationAsync(string id, CancellationToken ct = default) =>
         db.Conversations.FirstOrDefaultAsync(x => x.Id == id, ct);
+    public async Task<ChatConversation?> FindPrivateConversationAsync(string firstUserId, string secondUserId, CancellationToken ct = default)
+    {
+        var conversations = await db.Conversations
+            .Where(x => x.Kind == ConversationKind.Private)
+            .ToListAsync(ct);
+        return conversations.FirstOrDefault(x =>
+            x.MemberIds.Count == 2 &&
+            x.MemberIds.Contains(firstUserId) &&
+            x.MemberIds.Contains(secondUserId));
+    }
     public async Task<IReadOnlyList<ChatConversation>> GetUserConversationsAsync(string userId, CancellationToken ct = default)
     {
         var conversations = await db.Conversations

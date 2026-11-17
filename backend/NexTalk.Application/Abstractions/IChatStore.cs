@@ -10,6 +10,7 @@ public interface IChatStore
     Task CreateUserAsync(ChatUser user, CancellationToken ct = default);
     Task CreateConversationAsync(ChatConversation conversation, CancellationToken ct = default);
     Task<ChatConversation?> FindConversationAsync(string id, CancellationToken ct = default);
+    Task<ChatConversation?> FindPrivateConversationAsync(string firstUserId, string secondUserId, CancellationToken ct = default);
     Task<IReadOnlyList<ChatConversation>> GetUserConversationsAsync(string userId, CancellationToken ct = default);
     Task<IReadOnlyList<ChatConversation>> GetPublicRoomsAsync(CancellationToken ct = default);
     Task AddMemberAsync(string conversationId, string userId, CancellationToken ct = default);
