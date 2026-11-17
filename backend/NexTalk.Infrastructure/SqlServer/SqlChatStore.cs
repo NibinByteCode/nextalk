@@ -20,9 +20,15 @@ public sealed class SqlChatStore(NexTalkDbContext db) : IChatStore
     public async Task CreateConversationAsync(ChatConversation conversation, CancellationToken ct = default) { db.Conversations.Add(conversation); await db.SaveChangesAsync(ct); }
     public Task<ChatConversation?> FindConversationAsync(string id, CancellationToken ct = default) =>
         db.Conversations.FirstOrDefaultAsync(x => x.Id == id, ct);
-    public async Task<IReadOnlyList<ChatConversation>> GetUserConversationsAsync(string userId, CancellationToken ct = default) =>
-        await db.Conversations.Where(x => x.Kind != ConversationKind.Public && x.MemberIds.Contains(userId))
-            .OrderByDescending(x => x.UpdatedAt ?? x.CreatedAt).ToListAsync(ct);
+    public async Task<IReadOnlyList<ChatConversation>> GetUserConversationsAsync(string userId, CancellationToken ct = default)
+    {
+        var conversations = await db.Conversations
+            .Where(x => x.Kind != ConversationKind.Public)
+            .OrderByDescending(x => x.UpdatedAt ?? x.CreatedAt)
+            .ToListAsync(ct);
+
+        return conversations.Where(x => x.MemberIds.Contains(userId)).ToList();
+    }
     public async Task<IReadOnlyList<ChatConversation>> GetPublicRoomsAsync(CancellationToken ct = default) =>
         await db.Conversations.Where(x => x.Kind == ConversationKind.Public).OrderBy(x => x.Name).ToListAsync(ct);
     public async Task AddMemberAsync(string conversationId, string userId, CancellationToken ct = default)
