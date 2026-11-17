@@ -21,3 +21,9 @@ export interface ChatMessage {
   content: string;
   sentAt: string;
 }
+
+export interface UserSummary {
+  id: string;
+  userName: string;
+  email: string;
+}

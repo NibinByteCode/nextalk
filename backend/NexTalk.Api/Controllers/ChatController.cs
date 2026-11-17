@@ -16,6 +16,13 @@ public sealed class ChatController(ChatService chat) : ControllerBase
     [HttpGet("conversations")]
     public async Task<IActionResult> MyConversations(CancellationToken ct) => Ok(await chat.GetMyConversationsAsync(UserId, ct));
 
+    [HttpGet("users/search")]
+    public async Task<IActionResult> SearchUsers([FromQuery] string query, CancellationToken ct)
+    {
+        try { return Ok(await chat.SearchUsersAsync(query, UserId, ct)); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
     [HttpPost("conversations")]
     public async Task<IActionResult> CreateConversation(CreateConversationRequest request, CancellationToken ct)
     {

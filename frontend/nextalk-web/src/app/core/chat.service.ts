@@ -4,7 +4,7 @@ import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import * as signalR from '@microsoft/signalr';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
-import { ChatMessage, Conversation } from './models';
+import { ChatMessage, Conversation, UserSummary } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class ChatService {
@@ -45,6 +45,9 @@ export class ChatService {
   }
   conversations() { return this.http.get<Conversation[]>(`${environment.apiUrl}/chat/conversations`); }
   publicRooms() { return this.http.get<Conversation[]>(`${environment.apiUrl}/chat/rooms`); }
+  searchUsers(query: string) {
+    return this.http.get<UserSummary[]>(`${environment.apiUrl}/chat/users/search`, { params: { query } });
+  }
   createConversation(kind: number, name: string, memberIds: string[]) {
     return this.http.post<Conversation>(`${environment.apiUrl}/chat/conversations`, { kind, name, memberIds });
   }

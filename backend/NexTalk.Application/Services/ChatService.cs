@@ -37,6 +37,16 @@ public sealed class ChatService(IChatStore store)
     public async Task<IReadOnlyList<ConversationDto>> GetPublicRoomsAsync(CancellationToken ct = default) =>
         (await store.GetPublicRoomsAsync(ct)).Select(ToDto).ToList();
 
+    public async Task<IReadOnlyList<UserSummary>> SearchUsersAsync(string query, string currentUserId, CancellationToken ct = default)
+    {
+        query = query.Trim();
+        if (query.Length < 2) throw new ArgumentException("Search must contain at least 2 characters.");
+        return (await store.SearchUsersAsync(query, ct))
+            .Where(x => x.Id != currentUserId)
+            .Select(x => new UserSummary(x.Id, x.UserName, x.Email))
+            .ToList();
+    }
+
     public async Task<IReadOnlyList<MessageDto>> GetMessagesAsync(string userId, string conversationId, int take, CancellationToken ct = default)
     {
         if (!await store.IsConversationMemberAsync(conversationId, userId, ct)) throw new UnauthorizedAccessException("You cannot access this conversation.");

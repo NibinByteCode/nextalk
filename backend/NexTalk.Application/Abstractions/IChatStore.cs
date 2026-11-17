@@ -6,6 +6,7 @@ public interface IChatStore
 {
     Task<ChatUser?> FindUserByEmailAsync(string email, CancellationToken ct = default);
     Task<ChatUser?> FindUserByIdAsync(string id, CancellationToken ct = default);
+    Task<IReadOnlyList<ChatUser>> SearchUsersAsync(string query, CancellationToken ct = default);
     Task CreateUserAsync(ChatUser user, CancellationToken ct = default);
     Task CreateConversationAsync(ChatConversation conversation, CancellationToken ct = default);
     Task<ChatConversation?> FindConversationAsync(string id, CancellationToken ct = default);

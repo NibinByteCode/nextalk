@@ -10,6 +10,12 @@ public sealed class SqlChatStore(NexTalkDbContext db) : IChatStore
         db.Users.FirstOrDefaultAsync(x => x.Email == email.ToLowerInvariant(), ct);
     public Task<ChatUser?> FindUserByIdAsync(string id, CancellationToken ct = default) =>
         db.Users.FirstOrDefaultAsync(x => x.Id == id, ct);
+    public async Task<IReadOnlyList<ChatUser>> SearchUsersAsync(string query, CancellationToken ct = default)
+    {
+        query = query.Trim().ToLowerInvariant();
+        return await db.Users.Where(x => x.UserName.ToLower().Contains(query) || x.Email.Contains(query))
+            .OrderBy(x => x.UserName).Take(20).ToListAsync(ct);
+    }
     public async Task CreateUserAsync(ChatUser user, CancellationToken ct = default) { db.Users.Add(user); await db.SaveChangesAsync(ct); }
     public async Task CreateConversationAsync(ChatConversation conversation, CancellationToken ct = default) { db.Conversations.Add(conversation); await db.SaveChangesAsync(ct); }
     public Task<ChatConversation?> FindConversationAsync(string id, CancellationToken ct = default) =>

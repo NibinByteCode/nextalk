@@ -20,6 +20,15 @@ public sealed class FirestoreChatStore(FirestoreDb db) : IChatStore
         var snapshot = await Users.Document(id).GetSnapshotAsync(ct);
         return snapshot.Exists ? snapshot.ConvertTo<ChatUser>() : null;
     }
+    public async Task<IReadOnlyList<ChatUser>> SearchUsersAsync(string query, CancellationToken ct = default)
+    {
+        query = query.Trim();
+        var byName = await Users.WhereEqualTo("UserName", query).Limit(20).GetSnapshotAsync(ct);
+        var byEmail = await Users.WhereEqualTo("Email", query.ToLowerInvariant()).Limit(20).GetSnapshotAsync(ct);
+        return byName.Documents.Concat(byEmail.Documents)
+            .Select(x => x.ConvertTo<ChatUser>())
+            .GroupBy(x => x.Id).Select(x => x.First()).OrderBy(x => x.UserName).ToList();
+    }
     public Task CreateUserAsync(ChatUser user, CancellationToken ct = default) =>
         Users.Document(user.Id).SetAsync(user, cancellationToken: ct);
     public Task CreateConversationAsync(ChatConversation conversation, CancellationToken ct = default) =>

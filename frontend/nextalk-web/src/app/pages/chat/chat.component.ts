@@ -35,7 +35,21 @@ export class ChatComponent implements OnInit, OnDestroy {
   }
   async open(conversation: Conversation) { try { if (this.selected) await this.chat.leaveConversation(); this.selected = conversation; await this.chat.joinConversation(conversation.id); } catch { this.error = 'Unable to open conversation.'; } }
   send() { const value = this.text.trim(); if (!value) return; this.chat.sendMessage(value).then(() => this.text = '').catch(() => this.error = 'Message could not be sent.'); }
-  createPrivate() { const id = prompt("Enter the other user's ID"); if (id) this.chat.createConversation(1, '', [id]).subscribe({ next: c => { this.load(); void this.open(c); }, error: err => this.error = err.error?.message ?? 'Could not create private chat.' }); }
+  createPrivate() {
+    const query = prompt("Enter the other user's username or email");
+    if (!query) return;
+    this.chat.searchUsers(query).subscribe({
+      next: users => {
+        if (!users.length) { this.error = 'No user found with that username or email.'; return; }
+        const user = users.length === 1 ? users[0] : users.find(x => x.userName.toLowerCase() === query.toLowerCase()) ?? users[0];
+        this.chat.createConversation(1, '', [user.id]).subscribe({
+          next: c => { this.load(); void this.open(c); },
+          error: err => this.error = err.error?.message ?? 'Could not create private chat.'
+        });
+      },
+      error: err => this.error = err.error?.message ?? 'Could not search for that user.'
+    });
+  }
   createGroup() { const name = prompt('Group name'); const ids = prompt('Other member IDs, comma separated'); if (name && ids) this.chat.createConversation(2, name, ids.split(',').map(x => x.trim()).filter(Boolean)).subscribe({ next: c => { this.load(); void this.open(c); }, error: err => this.error = err.error?.message ?? 'Could not create group.' }); }
   createRoom() { const name = prompt('Public room name'); if (name) this.chat.createRoom(name).subscribe({ next: c => { this.load(); void this.open(c); }, error: err => this.error = err.error?.message ?? 'Could not create room.' }); }
   logout() { this.auth.logout(); void this.router.navigateByUrl('/login'); }
