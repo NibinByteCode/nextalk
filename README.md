@@ -31,10 +31,42 @@ npm start
 
 The default frontend URL is `http://localhost:4200`.
 
-The Angular development configuration uses `https://localhost:7000` for API
-and SignalR traffic. Credentials are protected in transit by HTTPS; the API
-also hashes passwords with ASP.NET Core's password hasher and never stores
-plain-text passwords. Do not use the HTTP profile for authenticated traffic.
+The Angular client uses the browser's hostname for API and SignalR traffic,
+so the same build works from another device on the LAN. The API binds to all
+network interfaces on HTTPS port `7000`. Credentials are protected in transit
+by HTTPS; the API also hashes passwords with ASP.NET Core's password hasher
+and never stores plain-text passwords.
+
+### LAN development
+
+Find the host computer's LAN IPv4 address, then configure the frontend origin
+before starting the API:
+
+```powershell
+$lanIp = "10.0.0.212"
+$env:AllowedOrigins__1 = "http://$lanIp`:4200"
+$env:Jwt__Secret = "replace-with-a-long-random-secret-at-least-32-bytes"
+dotnet run --project backend\NexTalk.Api --launch-profile https
+```
+
+Start Angular so other devices can connect:
+
+```powershell
+cd frontend\nextalk-web
+npm start -- --host 0.0.0.0
+```
+
+Open `http://10.0.0.212:4200` from another device. Replace the example IP
+with the host's actual LAN address. Allow inbound TCP ports `4200` and `7000`
+through the host firewall if required.
+
+The default .NET development certificate is trusted for `localhost`, not a
+LAN IP. For encrypted LAN traffic, create a development certificate whose SAN
+contains the host IP, configure it with
+`ASPNETCORE_Kestrel__Certificates__Default__Path` and
+`ASPNETCORE_Kestrel__Certificates__Default__Password`, and trust that
+certificate on each client device. Do not use the HTTP profile for
+authenticated traffic.
 
 Set `Database__Provider` to `SqlServer` or `Firebase`. SQL Server uses
 `ConnectionStrings__SqlServer`; Firebase uses `Firebase__ProjectId` and
