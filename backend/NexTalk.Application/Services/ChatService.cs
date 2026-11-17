@@ -76,6 +76,16 @@ public sealed class ChatService(IChatStore store)
             throw new UnauthorizedAccessException("You are not a member of this conversation.");
     }
 
+    public async Task<IReadOnlyList<string>> GetConversationMemberIdsAsync(
+        string userId, string conversationId, CancellationToken ct = default)
+    {
+        var conversation = await store.FindConversationAsync(conversationId, ct)
+            ?? throw new KeyNotFoundException("Conversation not found.");
+        if (conversation.Kind != ConversationKind.Public && !conversation.MemberIds.Contains(userId))
+            throw new UnauthorizedAccessException("You are not a member of this conversation.");
+        return conversation.MemberIds;
+    }
+
     public async Task AddGroupMemberAsync(string requesterId, string conversationId, string newMemberId, CancellationToken ct = default)
     {
         var conversation = await store.FindConversationAsync(conversationId, ct) ?? throw new KeyNotFoundException("Conversation not found.");

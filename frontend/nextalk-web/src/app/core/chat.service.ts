@@ -6,12 +6,18 @@ import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
 import { ChatMessage, Conversation, UserSummary } from './models';
 
+export type ChatNotification =
+  | { type: 'conversation'; conversation: Conversation }
+  | { type: 'message'; message: ChatMessage };
+
 @Injectable({ providedIn: 'root' })
 export class ChatService {
   private connection?: signalR.HubConnection;
   private activeConversationId: string | null = null;
   private readonly messagesSubject = new BehaviorSubject<ChatMessage[]>([]);
+  private readonly notificationsSubject = new BehaviorSubject<ChatNotification | null>(null);
   readonly messages$ = this.messagesSubject.asObservable();
+  readonly notifications$ = this.notificationsSubject.asObservable();
 
   constructor(private readonly auth: AuthService, private readonly http: HttpClient) {}
 
@@ -20,7 +26,20 @@ export class ChatService {
     this.connection = new signalR.HubConnectionBuilder()
       .withUrl(environment.hubUrl, { accessTokenFactory: () => this.auth.token ?? '' })
       .withAutomaticReconnect().build();
-    this.connection.on('ReceiveMessage', message => this.messagesSubject.next([...this.messagesSubject.value, message]));
+    this.connection.on('ReceiveMessage', (message: ChatMessage) => {
+      if (!this.messagesSubject.value.some(item => item.id === message.id))
+        this.messagesSubject.next([...this.messagesSubject.value, message]);
+    });
+    this.connection.on('ConversationCreated', (conversation: Conversation) => {
+      this.notificationsSubject.next({ type: 'conversation', conversation });
+    });
+    this.connection.on('MessageNotification', (message: ChatMessage) => {
+      if (message.conversationId === this.activeConversationId &&
+          !this.messagesSubject.value.some(item => item.id === message.id)) {
+        this.messagesSubject.next([...this.messagesSubject.value, message]);
+      }
+      this.notificationsSubject.next({ type: 'message', message });
+    });
     this.connection.onreconnected(() => {
       if (this.activeConversationId) void this.joinConversation(this.activeConversationId);
     });

@@ -31,6 +31,11 @@ public sealed class ChatHub(ChatService chat) : Hub
         {
             var message = await chat.SaveMessageAsync(UserId, conversationId, content);
             await Clients.Group(GroupName(conversationId)).SendAsync("ReceiveMessage", message);
+            var recipients = (await chat.GetConversationMemberIdsAsync(UserId, conversationId))
+                .Where(id => id != UserId)
+                .ToList();
+            if (recipients.Count > 0)
+                await Clients.Users(recipients).SendAsync("MessageNotification", message);
         }
         catch (Exception ex) when (ex is ArgumentException or UnauthorizedAccessException or KeyNotFoundException) { throw new HubException(ex.Message); }
     }
