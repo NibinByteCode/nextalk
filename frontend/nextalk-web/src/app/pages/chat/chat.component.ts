@@ -51,8 +51,26 @@ export class ChatComponent implements OnInit, OnDestroy {
   }
   ngOnDestroy() { this.sub?.unsubscribe(); this.notificationSub?.unsubscribe(); if (this.toastTimer) clearTimeout(this.toastTimer); void this.chat.leaveConversation(); }
   load() {
-    this.chat.conversations().subscribe({ next: x => this.conversations = x, error: () => this.error = 'Could not load conversations.' });
-    this.chat.publicRooms().subscribe({ next: x => this.rooms = x, error: () => this.error = 'Could not load rooms.' });
+    this.chat.conversations().subscribe({
+      next: x => {
+        this.conversations = x;
+        this.changeDetector.detectChanges();
+      },
+      error: () => {
+        this.error = 'Could not load conversations.';
+        this.changeDetector.detectChanges();
+      }
+    });
+    this.chat.publicRooms().subscribe({
+      next: x => {
+        this.rooms = x;
+        this.changeDetector.detectChanges();
+      },
+      error: () => {
+        this.error = 'Could not load rooms.';
+        this.changeDetector.detectChanges();
+      }
+    });
   }
   async open(conversation: Conversation) { try { if (this.selected) await this.chat.leaveConversation(); this.selected = conversation; await this.chat.joinConversation(conversation.id); } catch { this.error = 'Unable to open conversation.'; } }
   send() {
