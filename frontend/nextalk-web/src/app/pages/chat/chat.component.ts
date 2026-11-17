@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -22,19 +22,30 @@ import { ChatMessage, Conversation } from '../../core/models';
 })
 export class ChatComponent implements OnInit, OnDestroy {
   conversations: Conversation[] = []; rooms: Conversation[] = []; selected: Conversation | null = null; messages: ChatMessage[] = []; text = ''; error = ''; toast = ''; private sub?: Subscription; private notificationSub?: Subscription; private toastTimer?: ReturnType<typeof setTimeout>;
-  constructor(public readonly auth: AuthService, private readonly chat: ChatService, private readonly router: Router) {}
+  constructor(
+    public readonly auth: AuthService,
+    private readonly chat: ChatService,
+    private readonly router: Router,
+    private readonly changeDetector: ChangeDetectorRef
+  ) {}
   async ngOnInit() {
     if (!this.auth.token) { await this.router.navigateByUrl('/login'); return; }
-    this.sub = this.chat.messages$.subscribe(messages => this.messages = messages);
+    this.sub = this.chat.messages$.subscribe(messages => {
+      this.messages = messages;
+      this.changeDetector.detectChanges();
+    });
     this.notificationSub = this.chat.notifications$.subscribe(notification => {
       if (!notification) return;
       if (notification.type === 'conversation') {
         if (!this.conversations.some(item => item.id === notification.conversation.id))
           this.conversations = [notification.conversation, ...this.conversations];
+        this.load();
         this.showToast(`${notification.conversation.name} is now available`);
       } else if (this.selected?.id !== notification.message.conversationId) {
+        this.load();
         this.showToast(`${notification.message.senderName}: ${notification.message.content}`);
       }
+      this.changeDetector.detectChanges();
     });
     try { await this.chat.connect(); this.load(); } catch { this.error = 'Could not connect to chat server.'; }
   }
@@ -44,7 +55,13 @@ export class ChatComponent implements OnInit, OnDestroy {
     this.chat.publicRooms().subscribe({ next: x => this.rooms = x, error: () => this.error = 'Could not load rooms.' });
   }
   async open(conversation: Conversation) { try { if (this.selected) await this.chat.leaveConversation(); this.selected = conversation; await this.chat.joinConversation(conversation.id); } catch { this.error = 'Unable to open conversation.'; } }
-  send() { const value = this.text.trim(); if (!value) return; this.chat.sendMessage(value).then(() => this.text = '').catch(() => this.error = 'Message could not be sent.'); }
+  send() {
+    const value = this.text.trim();
+    if (!value) return;
+    this.chat.sendMessage(value)
+      .then(() => { this.text = ''; this.load(); })
+      .catch(() => this.error = 'Message could not be sent.');
+  }
   createPrivate() {
     const query = prompt("Enter the other user's username or email");
     if (!query) return;
